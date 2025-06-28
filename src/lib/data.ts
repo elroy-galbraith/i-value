@@ -66,3 +66,20 @@ export const capRateData = [
 ];
 
 export type CapRate = (typeof capRateData)[number];
+
+export const parishes = [
+  "Clarendon",
+  "Hanover",
+  "Kingston",
+  "Manchester",
+  "Portland",
+  "St. Andrew",
+  "St. Ann",
+  "St. Catherine",
+  "St. Elizabeth",
+  "St. James",
+  "St. Mary",
+  "St. Thomas",
+  "Trelawny",
+  "Westmoreland",
+];

@@ -1,6 +1,5 @@
-import { ValuationFormWrapper } from "@/components/valuation-form";
+import { ValuationTool } from "@/components/valuation-form";
 import { Wrench } from "lucide-react";
-import React from "react";
 
 export default function ValuationToolPage() {
   return (
@@ -10,13 +9,11 @@ export default function ValuationToolPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Valuation Tool</h2>
           <p className="text-muted-foreground">
-            Enter property details to begin valuation.
+            Follow the steps to generate a property valuation report.
           </p>
         </div>
       </div>
-      <React.Suspense fallback={<div>Loading form...</div>}>
-        <ValuationFormWrapper />
-      </React.Suspense>
+      <ValuationTool />
     </div>
   );
 }

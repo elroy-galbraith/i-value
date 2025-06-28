@@ -21,10 +21,9 @@ export function MapView() {
     await geocoder.geocode({ location: latLng }, (results, status) => {
       if (status === 'OK' && results && results[0]) {
         const address = results[0].formatted_address;
-        router.push(`/valuation-tool?address=${encodeURIComponent(address)}`);
+        router.push(`/valuation-tool?address=${encodeURIComponent(address)}&lat=${latLng.lat}&lng=${latLng.lng}`);
       } else {
         console.error('Geocoder failed due to: ' + status);
-        // Fallback with lat/lng if geocoding fails
         router.push(`/valuation-tool?lat=${latLng.lat}&lng=${latLng.lng}`);
       }
     });
