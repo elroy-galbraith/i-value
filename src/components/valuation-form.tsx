@@ -107,7 +107,7 @@ export function ValuationTool() {
     }
   };
 
-  const handleEvaluate: SubmitHandler<ValuationFormValues> = async () => {
+  const handleEvaluate = async () => {
     if (selectedFiles.length === 0) {
       toast({ variant: "destructive", title: "No images selected", description: "Please upload at least one image to evaluate." });
       return;
@@ -262,12 +262,20 @@ export function ValuationTool() {
                         : "Upload one or more images."}
                     </FormDescription>
                   </div>
-                  <Button onClick={form.handleSubmit(handleEvaluate)} disabled={loading.evaluate}>
+                  <Button onClick={handleEvaluate} disabled={loading.evaluate}>
                     {loading.evaluate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                     Evaluate Room
                   </Button>
                 </CardContent>
-                {evaluationResult && (
+                
+                {loading.evaluate && (
+                  <CardContent className="flex items-center justify-center py-6">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-4 text-muted-foreground">Evaluating images...</p>
+                  </CardContent>
+                )}
+
+                {evaluationResult && !loading.evaluate && (
                   <CardContent>
                     <CardTitle className="text-xl mb-4">Evaluation Results</CardTitle>
                     <div className="space-y-4">
