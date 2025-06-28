@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -16,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -235,7 +237,7 @@ export function ValuationTool() {
                     : "Upload one or more images."}
                 </FormDescription>
               </div>
-              <Button onClick={handleEvaluate} disabled={loading.evaluate}>
+              <Button onClick={form.handleSubmit(handleEvaluate)} disabled={loading.evaluate}>
                 {loading.evaluate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 Evaluate Room
               </Button>
@@ -263,41 +265,39 @@ export function ValuationTool() {
           </Card>
         </TabsContent>
 
-        <form onSubmit={form.handleSubmit(handleEstimate)} className="space-y-8">
-            <TabsContent value="estimate">
-            <Card>
-                <CardHeader>
-                <CardTitle>Property Details</CardTitle>
-                <CardDescription>Fill in the information below for the selected property.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <FormField control={form.control} name="address" render={({ field }) => ( <FormItem> <FormLabel>Property Address</FormLabel> <FormControl><Input placeholder="123 Main St, Kingston, Jamaica" {...field} /></FormControl> <FormMessage /></FormItem> )} />
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <FormField control={form.control} name="propertyType" render={({ field }) => (<FormItem><FormLabel>Property Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="House">House</SelectItem><SelectItem value="Apartment">Apartment</SelectItem><SelectItem value="Townhouse">Townhouse</SelectItem><SelectItem value="Commercial">Commercial</SelectItem><SelectItem value="Land">Vacant Land</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="parish" render={({ field }) => (<FormItem><FormLabel>Parish</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select parish" /></SelectTrigger></FormControl><SelectContent>{parishes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="sqft" render={({ field }) => (<FormItem><FormLabel>Square Footage</FormLabel><FormControl><Input type="number" placeholder="e.g., 2000" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="bedrooms" render={({ field }) => (<FormItem><FormLabel>Bedrooms</FormLabel><FormControl><Input type="number" placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="bathrooms" render={({ field }) => (<FormItem><FormLabel>Bathrooms</FormLabel><FormControl><Input type="number" placeholder="e.g., 2" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="aes_score" render={({ field }) => (<FormItem><FormLabel>Aesthetic Score</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormDescription>Score from evaluation step (0-10).</FormDescription><FormMessage /></FormItem>)} />
-                    </div>
-                    <Button type="submit" disabled={loading.estimate}>
-                        {loading.estimate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Building className="mr-2 h-4 w-4" />}
-                        Estimate Value
-                    </Button>
-                </CardContent>
-                {estimationResult && (
-                    <CardContent>
-                        <CardTitle className="text-xl mb-4">Price Estimation</CardTitle>
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                            <div><p className="text-sm text-muted-foreground">Minimum</p><p className="text-2xl font-bold">{estimationResult.min_price}</p></div>
-                            <div><p className="text-sm text-primary">Median</p><p className="text-3xl font-bold text-primary">{estimationResult.median_price}</p></div>
-                            <div><p className="text-sm text-muted-foreground">Maximum</p><p className="text-2xl font-bold">{estimationResult.max_price}</p></div>
-                        </div>
-                    </CardContent>
-                )}
-            </Card>
-            </TabsContent>
-        </form>
+        <TabsContent value="estimate">
+          <Card>
+            <CardHeader>
+              <CardTitle>Property Details</CardTitle>
+              <CardDescription>Fill in the information below for the selected property.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <FormField control={form.control} name="address" render={({ field }) => ( <FormItem> <FormLabel>Property Address</FormLabel> <FormControl><Input placeholder="123 Main St, Kingston, Jamaica" {...field} /></FormControl> <FormMessage /></FormItem> )} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <FormField control={form.control} name="propertyType" render={({ field }) => (<FormItem><FormLabel>Property Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="House">House</SelectItem><SelectItem value="Apartment">Apartment</SelectItem><SelectItem value="Townhouse">Townhouse</SelectItem><SelectItem value="Commercial">Commercial</SelectItem><SelectItem value="Land">Vacant Land</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="parish" render={({ field }) => (<FormItem><FormLabel>Parish</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select parish" /></SelectTrigger></FormControl><SelectContent>{parishes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="sqft" render={({ field }) => (<FormItem><FormLabel>Square Footage</FormLabel><FormControl><Input type="number" placeholder="e.g., 2000" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="bedrooms" render={({ field }) => (<FormItem><FormLabel>Bedrooms</FormLabel><FormControl><Input type="number" placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="bathrooms" render={({ field }) => (<FormItem><FormLabel>Bathrooms</FormLabel><FormControl><Input type="number" placeholder="e.g., 2" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="aes_score" render={({ field }) => (<FormItem><FormLabel>Aesthetic Score</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormDescription>Score from evaluation step (0-10).</FormDescription><FormMessage /></FormItem>)} />
+              </div>
+              <Button onClick={form.handleSubmit(handleEstimate)} disabled={loading.estimate}>
+                {loading.estimate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Building className="mr-2 h-4 w-4" />}
+                Estimate Value
+              </Button>
+            </CardContent>
+            {estimationResult && (
+              <CardContent>
+                <CardTitle className="text-xl mb-4">Price Estimation</CardTitle>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div><p className="text-sm text-muted-foreground">Minimum</p><p className="text-2xl font-bold">{estimationResult.min_price}</p></div>
+                  <div><p className="text-sm text-primary">Median</p><p className="text-3xl font-bold text-primary">{estimationResult.median_price}</p></div>
+                  <div><p className="text-sm text-muted-foreground">Maximum</p><p className="text-2xl font-bold">{estimationResult.max_price}</p></div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        </TabsContent>
 
         <TabsContent value="similar">
           <Card>
