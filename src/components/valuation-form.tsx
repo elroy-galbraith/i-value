@@ -64,6 +64,7 @@ export function ValuationTool() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const form = useForm<ValuationFormValues>({
     resolver: zodResolver(valuationSchema),
@@ -89,9 +90,20 @@ export function ValuationTool() {
     form.reset({ ...form.getValues(), address });
   }, [searchParams, form]);
 
+  useEffect(() => {
+    // This effect hook handles cleanup of object URLs to prevent memory leaks.
+    // It runs when the component unmounts or when imagePreviews changes.
+    return () => {
+      imagePreviews.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [imagePreviews]);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
-      setSelectedFiles(Array.from(event.target.files));
+      const files = Array.from(event.target.files);
+      setSelectedFiles(files);
+      // Create new object URLs for the selected files for previewing
+      setImagePreviews(files.map(file => URL.createObjectURL(file)));
     }
   };
 
@@ -213,141 +225,161 @@ export function ValuationTool() {
       </TabsList>
       
       <Form {...form}>
-        <TabsContent value="evaluate">
-          <Card>
-            <CardHeader>
-              <CardTitle>Room Evaluator</CardTitle>
-              <CardDescription>Upload images of a room to get an AI-generated aesthetic score and description.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Property Images</Label>
-                <div className="relative">
-                  <Input id="image-upload" type="file" multiple onChange={handleFileChange} className="w-full h-full absolute inset-0 opacity-0 cursor-pointer" />
-                  <label htmlFor="image-upload" className="flex items-center justify-center w-full h-32 border-2 border-dashed border-muted rounded-lg cursor-pointer hover:bg-muted/50">
-                    <div className="text-center">
-                      <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
-                      <p className="mt-2 text-sm text-muted-foreground">Click to upload or drag and drop</p>
+        <form onSubmit={(e) => e.preventDefault()}>
+            <TabsContent value="evaluate">
+            <Card>
+                <CardHeader>
+                <CardTitle>Room Evaluator</CardTitle>
+                <CardDescription>Upload images of a room to get an AI-generated aesthetic score and description.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Property Images</Label>
+                    <div className="relative">
+                      <Input id="image-upload" type="file" multiple onChange={handleFileChange} className="w-full h-full absolute inset-0 opacity-0 cursor-pointer" />
+                      <label htmlFor="image-upload" className="flex items-center justify-center w-full h-32 border-2 border-dashed border-muted rounded-lg cursor-pointer hover:bg-muted/50">
+                        <div className="text-center">
+                          <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
+                          <p className="mt-2 text-sm text-muted-foreground">Click to upload or drag and drop</p>
+                        </div>
+                      </label>
                     </div>
-                  </label>
-                </div>
-                <FormDescription>
-                  {selectedFiles.length > 0
-                    ? `${selectedFiles.length} file(s) selected: ${selectedFiles.map(f => f.name).join(', ')}`
-                    : "Upload one or more images."}
-                </FormDescription>
-              </div>
-              <Button onClick={form.handleSubmit(handleEvaluate)} disabled={loading.evaluate}>
-                {loading.evaluate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                Evaluate Room
-              </Button>
-            </CardContent>
-            {evaluationResult && (
-              <CardContent>
-                <CardTitle className="text-xl mb-4">Evaluation Results</CardTitle>
-                <div className="space-y-4">
-                  <p><strong>Average Aesthetic Score:</strong> {evaluationResult.average_score.toFixed(2)} / 10</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {evaluationResult.public_urls.map((url: string, index: number) => (
-                      <Card key={index}>
-                        <CardHeader className="p-0">
-                          <Image src={url} alt={`Room image ${index + 1}`} width={400} height={300} className="rounded-t-lg object-cover aspect-video" data-ai-hint="interior room" />
-                        </CardHeader>
-                        <CardContent className="p-4">
-                          <p className="text-sm">{evaluationResult.descriptions[index]}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
+                    {imagePreviews.length > 0 && (
+                      <div className="pt-4">
+                        <p className="text-sm font-medium mb-2">Selected Image(s) Preview:</p>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+                          {imagePreviews.map((preview, index) => (
+                            <div key={index} className="relative aspect-square">
+                              <Image src={preview} alt={`Preview of selected file ${index + 1}`} fill className="rounded-md object-cover" data-ai-hint="interior room" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <FormDescription>
+                      {selectedFiles.length > 0
+                        ? `${selectedFiles.length} file(s) selected.`
+                        : "Upload one or more images."}
+                    </FormDescription>
                   </div>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="estimate">
-          <Card>
-            <CardHeader>
-              <CardTitle>Property Details</CardTitle>
-              <CardDescription>Fill in the information below for the selected property.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <FormField control={form.control} name="address" render={({ field }) => ( <FormItem> <FormLabel>Property Address</FormLabel> <FormControl><Input placeholder="123 Main St, Kingston, Jamaica" {...field} /></FormControl> <FormMessage /></FormItem> )} />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <FormField control={form.control} name="propertyType" render={({ field }) => (<FormItem><FormLabel>Property Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="House">House</SelectItem><SelectItem value="Apartment">Apartment</SelectItem><SelectItem value="Townhouse">Townhouse</SelectItem><SelectItem value="Commercial">Commercial</SelectItem><SelectItem value="Land">Vacant Land</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="parish" render={({ field }) => (<FormItem><FormLabel>Parish</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select parish" /></SelectTrigger></FormControl><SelectContent>{parishes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="sqft" render={({ field }) => (<FormItem><FormLabel>Square Footage</FormLabel><FormControl><Input type="number" placeholder="e.g., 2000" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="bedrooms" render={({ field }) => (<FormItem><FormLabel>Bedrooms</FormLabel><FormControl><Input type="number" placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="bathrooms" render={({ field }) => (<FormItem><FormLabel>Bathrooms</FormLabel><FormControl><Input type="number" placeholder="e.g., 2" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="aes_score" render={({ field }) => (<FormItem><FormLabel>Aesthetic Score</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormDescription>Score from evaluation step (0-10).</FormDescription><FormMessage /></FormItem>)} />
-              </div>
-              <Button onClick={form.handleSubmit(handleEstimate)} disabled={loading.estimate}>
-                {loading.estimate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Building className="mr-2 h-4 w-4" />}
-                Estimate Value
-              </Button>
-            </CardContent>
-            {estimationResult && (
-              <CardContent>
-                <CardTitle className="text-xl mb-4">Price Estimation</CardTitle>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div><p className="text-sm text-muted-foreground">Minimum</p><p className="text-2xl font-bold">{estimationResult.min_price}</p></div>
-                  <div><p className="text-sm text-primary">Median</p><p className="text-3xl font-bold text-primary">{estimationResult.median_price}</p></div>
-                  <div><p className="text-sm text-muted-foreground">Maximum</p><p className="text-2xl font-bold">{estimationResult.max_price}</p></div>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="similar">
-          <Card>
-            <CardHeader>
-              <CardTitle>Find Similar Properties</CardTitle>
-              <CardDescription>Based on the property details and estimation, find comparable properties.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={handleFindSimilar} disabled={loading.find}>
-                {loading.find ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                Find Comparables
-              </Button>
-            </CardContent>
-            {similarProperties && (
-                <CardContent className="space-y-6">
-                    <div>
-                        <CardTitle className="text-xl mb-4">Similar Properties</CardTitle>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {similarProperties.similar_properties.map((prop: any, index: number) => (
-                                <Card key={index}>
-                                    <CardHeader><CardTitle className="text-base">{prop.title}</CardTitle></CardHeader>
-                                    <CardContent className="text-sm space-y-1">
-                                        <p><strong>Price:</strong> {prop.price}</p>
-                                        <p><strong>Location:</strong> {prop.location}</p>
-                                        <a href={prop.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">
-                                            View Listing <ArrowRight className="ml-1 h-4 w-4" />
-                                        </a>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
+                  <Button onClick={form.handleSubmit(handleEvaluate)} disabled={loading.evaluate}>
+                    {loading.evaluate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                    Evaluate Room
+                  </Button>
+                </CardContent>
+                {evaluationResult && (
+                  <CardContent>
+                    <CardTitle className="text-xl mb-4">Evaluation Results</CardTitle>
+                    <div className="space-y-4">
+                      <p><strong>Average Aesthetic Score:</strong> {evaluationResult.average_score.toFixed(2)} / 10</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {evaluationResult.public_urls.map((url: string, index: number) => (
+                          <Card key={index}>
+                            <CardHeader className="p-0">
+                              <Image src={url} alt={`Room image ${index + 1}`} width={400} height={300} className="rounded-t-lg object-cover aspect-video" data-ai-hint="interior room" />
+                            </CardHeader>
+                            <CardContent className="p-4">
+                              <p className="text-sm">{evaluationResult.descriptions[index]}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
-                    <div>
-                        <CardTitle className="text-xl mb-4">Relevant Google Search Results</CardTitle>
-                        <div className="space-y-3">
-                             {similarProperties.google_search_results.map((result: any, index: number) => (
-                                <Card key={index} className="p-4">
-                                    <a href={result.link} target="_blank" rel="noopener noreferrer">
-                                        <h3 className="font-semibold text-primary hover:underline">{result.title}</h3>
-                                        <p className="text-xs text-green-700">{result.displayed_link}</p>
-                                        <p className="text-sm text-muted-foreground mt-1">{result.snippet}</p>
-                                    </a>
-                                </Card>
-                            ))}
-                        </div>
+                  </CardContent>
+                )}
+            </Card>
+            </TabsContent>
+
+            <TabsContent value="estimate">
+            <Card>
+                <CardHeader>
+                <CardTitle>Property Details</CardTitle>
+                <CardDescription>Fill in the information below for the selected property.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                <FormField control={form.control} name="address" render={({ field }) => ( <FormItem> <FormLabel>Property Address</FormLabel> <FormControl><Input placeholder="123 Main St, Kingston, Jamaica" {...field} /></FormControl> <FormMessage /></FormItem> )} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <FormField control={form.control} name="propertyType" render={({ field }) => (<FormItem><FormLabel>Property Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="House">House</SelectItem><SelectItem value="Apartment">Apartment</SelectItem><SelectItem value="Townhouse">Townhouse</SelectItem><SelectItem value="Commercial">Commercial</SelectItem><SelectItem value="Land">Vacant Land</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="parish" render={({ field }) => (<FormItem><FormLabel>Parish</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select parish" /></SelectTrigger></FormControl><SelectContent>{parishes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="sqft" render={({ field }) => (<FormItem><FormLabel>Square Footage</FormLabel><FormControl><Input type="number" placeholder="e.g., 2000" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="bedrooms" render={({ field }) => (<FormItem><FormLabel>Bedrooms</FormLabel><FormControl><Input type="number" placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="bathrooms" render={({ field }) => (<FormItem><FormLabel>Bathrooms</FormLabel><FormControl><Input type="number" placeholder="e.g., 2" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="aes_score" render={({ field }) => (<FormItem><FormLabel>Aesthetic Score</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormDescription>Score from evaluation step (0-10).</FormDescription><FormMessage /></FormItem>)} />
+                </div>
+                <Button onClick={form.handleSubmit(handleEstimate)} disabled={loading.estimate}>
+                    {loading.estimate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Building className="mr-2 h-4 w-4" />}
+                    Estimate Value
+                </Button>
+                </CardContent>
+                {estimationResult && (
+                <CardContent>
+                    <CardTitle className="text-xl mb-4">Price Estimation</CardTitle>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                    <div><p className="text-sm text-muted-foreground">Minimum</p><p className="text-2xl font-bold">{estimationResult.min_price}</p></div>
+                    <div><p className="text-sm text-primary">Median</p><p className="text-3xl font-bold text-primary">{estimationResult.median_price}</p></div>
+                    <div><p className="text-sm text-muted-foreground">Maximum</p><p className="text-2xl font-bold">{estimationResult.max_price}</p></div>
                     </div>
                 </CardContent>
-            )}
-          </Card>
-        </TabsContent>
+                )}
+            </Card>
+            </TabsContent>
+
+            <TabsContent value="similar">
+            <Card>
+                <CardHeader>
+                <CardTitle>Find Similar Properties</CardTitle>
+                <CardDescription>Based on the property details and estimation, find comparable properties.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                <Button onClick={handleFindSimilar} disabled={loading.find}>
+                    {loading.find ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                    Find Comparables
+                </Button>
+                </CardContent>
+                {loading.find && (
+                  <CardContent className="flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-4 text-muted-foreground">Searching for comparables...</p>
+                  </CardContent>
+                )}
+                {similarProperties && (
+                    <CardContent className="space-y-6">
+                        <div>
+                            <CardTitle className="text-xl mb-4">Similar Properties</CardTitle>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {similarProperties.similar_properties.map((prop: any, index: number) => (
+                                    <Card key={index}>
+                                        <CardHeader><CardTitle className="text-base">{prop.title}</CardTitle></CardHeader>
+                                        <CardContent className="text-sm space-y-1">
+                                            <p><strong>Price:</strong> {prop.price}</p>
+                                            <p><strong>Location:</strong> {prop.location}</p>
+                                            <a href={prop.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">
+                                                View Listing <ArrowRight className="ml-1 h-4 w-4" />
+                                            </a>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <CardTitle className="text-xl mb-4">Relevant Google Search Results</CardTitle>
+                            <div className="space-y-3">
+                                {similarProperties.google_search_results.map((result: any, index: number) => (
+                                    <Card key={index} className="p-4">
+                                        <a href={result.link} target="_blank" rel="noopener noreferrer">
+                                            <h3 className="font-semibold text-primary hover:underline">{result.title}</h3>
+                                            <p className="text-xs text-green-700">{result.displayed_link}</p>
+                                            <p className="text-sm text-muted-foreground mt-1">{result.snippet}</p>
+                                        </a>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
+            </TabsContent>
+        </form>
       </Form>
     </Tabs>
   );
