@@ -26,8 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/icons";
-import { BrainCircuit, LayoutDashboard, Settings, LogOut, Map } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { BrainCircuit, LayoutDashboard, Settings, LogOut, Map, Wrench } from "lucide-react";
 
 function UserNav() {
   return (
@@ -66,29 +65,45 @@ function UserNav() {
 
 function Nav() {
   const pathname = usePathname();
-  const { open } = useSidebar();
-  
+  const { setOpenMobile } = useSidebar();
+
   const navItems = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/comparables", label: "AI Comparables", icon: BrainCircuit },
-    { href: "/map", label: "Map View", icon: Map },
+    {
+      label: "Dashboard",
+      href: "/",
+      icon: <LayoutDashboard />,
+    },
+    {
+      label: "Comparables Tool",
+      href: "/comparables",
+      icon: <BrainCircuit />,
+    },
+    {
+      label: "Map View",
+      href: "/map",
+      icon: <Map />,
+    },
+    {
+        label: "Valuation Tool",
+        href: "/valuation-tool",
+        icon: <Wrench />,
+    },
   ];
 
   return (
     <SidebarMenu>
       {navItems.map((item) => (
         <SidebarMenuItem key={item.href}>
-          <SidebarMenuButton
-            asChild
-            isActive={pathname === item.href}
-            tooltip={item.label}
-            className="justify-start"
-          >
-            <Link href={item.href}>
-              <item.icon className="h-5 w-5" />
-              <span className={cn(open && "animate-in fade-in-0 duration-700")}>{item.label}</span>
-            </Link>
-          </SidebarMenuButton>
+          <Link href={item.href}>
+            <SidebarMenuButton
+              isActive={pathname === item.href}
+              tooltip={item.label}
+              onClick={() => setOpenMobile(false)}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </SidebarMenuButton>
+          </Link>
         </SidebarMenuItem>
       ))}
     </SidebarMenu>
@@ -101,10 +116,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-            <Logo className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold group-data-[collapsible=icon]:hidden animate-in fade-in-0 duration-700">
-              i-Valu Lite
-            </span>
+            <Logo className="size-8" />
+            <span className="text-lg font-semibold">i-Valu Lite</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -112,14 +125,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
-          <SidebarTrigger className="md:hidden" />
-          <div className="w-full flex-1">
-            {/* Can add breadcrumbs here */}
+        <header className="flex h-14 items-center justify-between gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+            <SidebarTrigger className="md:hidden" />
+          <div className="flex-1">
+            {/* Can add breadcrumbs or page title here */}
           </div>
           <UserNav />
         </header>
-        <main className="flex-1 overflow-auto">{children}</main>
+        {children}
       </SidebarInset>
     </SidebarProvider>
   );
