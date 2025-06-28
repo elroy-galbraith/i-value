@@ -218,86 +218,87 @@ export function ValuationTool() {
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="evaluate">1. Evaluate Room</TabsTrigger>
-        <TabsTrigger value="estimate" disabled={!evaluationResult}>2. Estimate Value</TabsTrigger>
-        <TabsTrigger value="similar" disabled={!estimationResult}>3. Find Comps</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="evaluate">
-        <Card>
-          <CardHeader>
-            <CardTitle>Room Evaluator</CardTitle>
-            <CardDescription>Upload images of a room to get an AI-generated aesthetic score and description.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Property Images</Label>
-              <div className="relative">
-                <Input id="image-upload" type="file" multiple onChange={handleFileChange} className="w-full h-full absolute inset-0 opacity-0 cursor-pointer" />
-                <label htmlFor="image-upload" className="flex items-center justify-center w-full h-32 border-2 border-dashed border-muted rounded-lg cursor-pointer hover:bg-muted/50">
-                  <div className="text-center">
-                    <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
-                    <p className="mt-2 text-sm text-muted-foreground">Click to upload or drag and drop</p>
-                  </div>
-                </label>
-              </div>
-              {imagePreviews.length > 0 && (
-                <div className="pt-4">
-                  <p className="text-sm font-medium mb-2">Selected Image(s) Preview:</p>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-                    {imagePreviews.map((preview, index) => (
-                      <div key={index} className="relative aspect-square">
-                        <Image src={preview} alt={`Preview of selected file ${index + 1}`} fill className="rounded-md object-cover" data-ai-hint="interior room" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <FormDescription>
-                {selectedFiles.length > 0
-                  ? `${selectedFiles.length} file(s) selected.`
-                  : "Upload one or more images."}
-              </FormDescription>
-            </div>
-            <Button onClick={handleEvaluate} disabled={loading.evaluate}>
-              {loading.evaluate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              Evaluate Room
-            </Button>
-          </CardContent>
+    <Form {...form}>
+      <form onSubmit={(e) => e.preventDefault()}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="evaluate">1. Evaluate Room</TabsTrigger>
+            <TabsTrigger value="estimate" disabled={!evaluationResult}>2. Estimate Value</TabsTrigger>
+            <TabsTrigger value="similar" disabled={!estimationResult}>3. Find Comps</TabsTrigger>
+          </TabsList>
           
-          {loading.evaluate && (
-            <CardContent className="flex items-center justify-center py-6">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="ml-4 text-muted-foreground">Evaluating images...</p>
-            </CardContent>
-          )}
-
-          {evaluationResult && !loading.evaluate && (
-            <CardContent>
-              <CardTitle className="text-xl mb-4">Evaluation Results</CardTitle>
-              <div className="space-y-4">
-                <p><strong>Average Aesthetic Score:</strong> {evaluationResult.average_score.toFixed(2)} / 10</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {evaluationResult.public_urls.map((url: string, index: number) => (
-                    <Card key={index}>
-                      <CardHeader className="p-0">
-                        <Image src={url} alt={`Room image ${index + 1}`} width={400} height={300} className="rounded-t-lg object-cover aspect-video" data-ai-hint="interior room" />
-                      </CardHeader>
-                      <CardContent className="p-4">
-                        <p className="text-sm">{evaluationResult.descriptions[index]}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
+          <TabsContent value="evaluate">
+            <Card>
+              <CardHeader>
+                <CardTitle>Room Evaluator</CardTitle>
+                <CardDescription>Upload images of a room to get an AI-generated aesthetic score and description.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Property Images</Label>
+                  <div className="relative">
+                    <Input id="image-upload" type="file" multiple onChange={handleFileChange} className="w-full h-full absolute inset-0 opacity-0 cursor-pointer" />
+                    <label htmlFor="image-upload" className="flex items-center justify-center w-full h-32 border-2 border-dashed border-muted rounded-lg cursor-pointer hover:bg-muted/50">
+                      <div className="text-center">
+                        <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
+                        <p className="mt-2 text-sm text-muted-foreground">Click to upload or drag and drop</p>
+                      </div>
+                    </label>
+                  </div>
+                  {imagePreviews.length > 0 && (
+                    <div className="pt-4">
+                      <p className="text-sm font-medium mb-2">Selected Image(s) Preview:</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+                        {imagePreviews.map((preview, index) => (
+                          <div key={index} className="relative aspect-square">
+                            <Image src={preview} alt={`Preview of selected file ${index + 1}`} fill className="rounded-md object-cover" data-ai-hint="interior room" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <FormDescription>
+                    {selectedFiles.length > 0
+                      ? `${selectedFiles.length} file(s) selected.`
+                      : "Upload one or more images."}
+                  </FormDescription>
                 </div>
-              </div>
-            </CardContent>
-          )}
-        </Card>
-      </TabsContent>
-      <Form {...form}>
-        <form onSubmit={(e) => e.preventDefault()}>
+                <Button onClick={handleEvaluate} type="button" disabled={loading.evaluate}>
+                  {loading.evaluate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                  Evaluate Room
+                </Button>
+              </CardContent>
+              
+              {loading.evaluate && (
+                <CardContent className="flex items-center justify-center py-6">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="ml-4 text-muted-foreground">Evaluating images...</p>
+                </CardContent>
+              )}
+
+              {evaluationResult && !loading.evaluate && (
+                <CardContent>
+                  <CardTitle className="text-xl mb-4">Evaluation Results</CardTitle>
+                  <div className="space-y-4">
+                    <p><strong>Average Aesthetic Score:</strong> {evaluationResult.average_score.toFixed(2)} / 10</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {evaluationResult.public_urls.map((url: string, index: number) => (
+                        <Card key={index}>
+                          <CardHeader className="p-0">
+                            <Image src={url} alt={`Room image ${index + 1}`} width={400} height={300} className="rounded-t-lg object-cover aspect-video" data-ai-hint="interior room" />
+                          </CardHeader>
+                          <CardContent className="p-4">
+                            <p className="text-sm">{evaluationResult.descriptions[index]}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          </TabsContent>
+          
           <TabsContent value="estimate">
           <Card>
               <CardHeader>
@@ -314,7 +315,7 @@ export function ValuationTool() {
                   <FormField control={form.control} name="bathrooms" render={({ field }) => (<FormItem><FormLabel>Bathrooms</FormLabel><FormControl><Input type="number" placeholder="e.g., 2" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="aes_score" render={({ field }) => (<FormItem><FormLabel>Aesthetic Score</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormDescription>Score from evaluation step (0-10).</FormDescription><FormMessage /></FormItem>)} />
               </div>
-              <Button onClick={form.handleSubmit(handleEstimate)} disabled={loading.estimate}>
+              <Button onClick={form.handleSubmit(handleEstimate)} type="button" disabled={loading.estimate}>
                   {loading.estimate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Building className="mr-2 h-4 w-4" />}
                   Estimate Value
               </Button>
@@ -339,7 +340,7 @@ export function ValuationTool() {
               <CardDescription>Based on the property details and estimation, find comparable properties.</CardDescription>
               </CardHeader>
               <CardContent>
-              <Button onClick={handleFindSimilar} disabled={loading.find}>
+              <Button onClick={handleFindSimilar} type="button" disabled={loading.find}>
                   {loading.find ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                   Find Comparables
               </Button>
@@ -387,8 +388,8 @@ export function ValuationTool() {
               )}
           </Card>
           </TabsContent>
-        </form>
-      </Form>
-    </Tabs>
+        </Tabs>
+      </form>
+    </Form>
   );
 }
