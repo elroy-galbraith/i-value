@@ -26,7 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/icons";
-import { BrainCircuit, LayoutDashboard, Settings, LogOut } from "lucide-react";
+import { BrainCircuit, LayoutDashboard, Settings, LogOut, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function UserNav() {
@@ -71,6 +71,7 @@ function Nav() {
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/comparables", label: "AI Comparables", icon: BrainCircuit },
+    { href: "/map", label: "Map View", icon: Map },
   ];
 
   return (
