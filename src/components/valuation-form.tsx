@@ -450,5 +450,3 @@ export function ValuationTool() {
     </Form>
   );
 }
-
-    
