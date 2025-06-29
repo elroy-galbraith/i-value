@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -38,12 +39,18 @@ const valuationSchema = z.object({
   sqft: z.coerce.number().min(1, "Square footage is required"),
   bedrooms: z.coerce.number().int().min(0),
   bathrooms: z.coerce.number().int().min(0),
-  parish: z.string().min(1, "Parish is required"),
+  parish: z.string().optional(),
   aes_score: z.coerce.number().min(0).max(10),
   images: z.any().optional(),
 });
 
 type ValuationFormValues = z.infer<typeof valuationSchema>;
+
+interface EvaluatedImage {
+  url: string;
+  description: string;
+  score: number;
+}
 
 // Helper to parse price strings like "$1,500,000" into numbers
 const parsePrice = (priceStr: string) => {
@@ -58,6 +65,7 @@ export function ValuationTool() {
   const [loading, setLoading] = useState({ evaluate: false, estimate: false, find: false });
   
   const [evaluationResult, setEvaluationResult] = useState<any>(null);
+  const [evaluatedImages, setEvaluatedImages] = useState<EvaluatedImage[]>([]);
   const [estimationResult, setEstimationResult] = useState<any>(null);
   const [similarProperties, setSimilarProperties] = useState<any>(null);
 
@@ -91,8 +99,6 @@ export function ValuationTool() {
   }, [searchParams, form]);
 
   useEffect(() => {
-    // This effect hook handles cleanup of object URLs to prevent memory leaks.
-    // It runs when the component unmounts or when imagePreviews changes.
     return () => {
       imagePreviews.forEach(url => URL.revokeObjectURL(url));
     };
@@ -102,7 +108,6 @@ export function ValuationTool() {
     if (event.target.files) {
       const files = Array.from(event.target.files);
       setSelectedFiles(files);
-      // Create new object URLs for the selected files for previewing
       setImagePreviews(files.map(file => URL.createObjectURL(file)));
     }
   };
@@ -115,11 +120,11 @@ export function ValuationTool() {
     }
     setLoading(prev => ({ ...prev, evaluate: true }));
     setEvaluationResult(null);
+    setEvaluatedImages([]);
 
     const formData = new FormData();
     selectedFiles.forEach(file => formData.append("images", file));
-    formData.append("user_id", "user-123");
-    formData.append("eval_id", `eval-${Date.now()}`);
+    formData.append("data", JSON.stringify({ user_id: "user-123", eval_id: `eval-${Date.now()}` }));
 
     try {
       const response = await fetch("https://ml-endpoints.aeontsolutions.com/v1/room-evaluator/", {
@@ -128,7 +133,15 @@ export function ValuationTool() {
       });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const result = await response.json();
+      
       setEvaluationResult(result);
+      const newImages = result.public_urls.map((url: string, index: number) => ({
+        url: url,
+        description: result.descriptions[index],
+        score: result.average_score,
+      }));
+      setEvaluatedImages(newImages);
+
       form.setValue("aes_score", parseFloat(result.average_score.toFixed(2)));
       toast({ title: "Evaluation Complete", description: `Average aesthetic score: ${result.average_score.toFixed(2)}` });
     } catch (error) {
@@ -137,6 +150,25 @@ export function ValuationTool() {
     } finally {
       setLoading(prev => ({ ...prev, evaluate: false }));
     }
+  };
+
+  const handleScoreChange = (index: number, newScoreString: string) => {
+    const newScore = parseFloat(newScoreString);
+    if (isNaN(newScore)) return;
+
+    const updatedImages = [...evaluatedImages];
+    const clampedScore = Math.max(0, Math.min(10, newScore));
+    updatedImages[index].score = clampedScore;
+    setEvaluatedImages(updatedImages);
+
+    const newAverage = updatedImages.reduce((acc, img) => acc + img.score, 0) / updatedImages.length;
+    form.setValue("aes_score", parseFloat(newAverage.toFixed(2)));
+  };
+
+  const handleDescriptionChange = (index: number, newDescription: string) => {
+    const updatedImages = [...evaluatedImages];
+    updatedImages[index].description = newDescription;
+    setEvaluatedImages(updatedImages);
   };
   
   const handleEstimate: SubmitHandler<ValuationFormValues> = async (data) => {
@@ -147,8 +179,8 @@ export function ValuationTool() {
       sqft: data.sqft,
       rooms: data.bedrooms,
       bathroom: data.bathrooms,
-      latitude: lat ?? 0,
-      longitude: lng ?? 0,
+      latitude: lat,
+      longitude: lng,
       aes_score: data.aes_score,
       property_type: data.propertyType,
     };
@@ -193,8 +225,8 @@ export function ValuationTool() {
         sqft: data.sqft,
         rooms: data.bedrooms,
         bathroom: data.bathrooms,
-        latitude: lat ?? 0,
-        longitude: lng ?? 0,
+        latitude: lat,
+        longitude: lng,
         aes_score: data.aes_score,
         property_type: data.propertyType,
         price: parsePrice(estimationResult.median_price),
@@ -283,15 +315,37 @@ export function ValuationTool() {
                 <CardContent>
                   <CardTitle className="text-xl mb-4">Evaluation Results</CardTitle>
                   <div className="space-y-4">
-                    <p><strong>Average Aesthetic Score:</strong> {evaluationResult.average_score.toFixed(2)} / 10</p>
+                    <p><strong>Average Aesthetic Score:</strong> {(form.watch('aes_score') || 0).toFixed(2)} / 10</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {evaluationResult.public_urls.map((url: string, index: number) => (
+                      {evaluatedImages.map((image, index) => (
                         <Card key={index}>
                           <CardHeader className="p-0">
-                            <Image src={url} alt={`Room image ${index + 1}`} width={400} height={300} className="rounded-t-lg object-cover aspect-video" data-ai-hint="interior room" />
+                            <Image src={image.url} alt={`Room image ${index + 1}`} width={400} height={300} className="rounded-t-lg object-cover aspect-video" data-ai-hint="interior room" />
                           </CardHeader>
-                          <CardContent className="p-4">
-                            <p className="text-sm">{evaluationResult.descriptions[index]}</p>
+                          <CardContent className="p-4 space-y-4">
+                            <div>
+                              <Label htmlFor={`description-${index}`} className="text-sm font-medium">Description</Label>
+                              <Textarea
+                                id={`description-${index}`}
+                                value={image.description}
+                                onChange={(e) => handleDescriptionChange(index, e.target.value)}
+                                className="mt-1"
+                                rows={4}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor={`score-${index}`} className="text-sm font-medium">Aesthetic Score</Label>
+                              <Input
+                                id={`score-${index}`}
+                                type="number"
+                                value={image.score}
+                                onChange={(e) => handleScoreChange(index, e.target.value)}
+                                step="0.1"
+                                min="0"
+                                max="10"
+                                className="mt-1"
+                              />
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
@@ -316,7 +370,7 @@ export function ValuationTool() {
                   <FormField control={form.control} name="sqft" render={({ field }) => (<FormItem><FormLabel>Square Footage</FormLabel><FormControl><Input type="number" placeholder="e.g., 2000" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="bedrooms" render={({ field }) => (<FormItem><FormLabel>Bedrooms</FormLabel><FormControl><Input type="number" placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="bathrooms" render={({ field }) => (<FormItem><FormLabel>Bathrooms</FormLabel><FormControl><Input type="number" placeholder="e.g., 2" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="aes_score" render={({ field }) => (<FormItem><FormLabel>Aesthetic Score</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormDescription>Score from evaluation step (0-10).</FormDescription><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="aes_score" render={({ field }) => (<FormItem><FormLabel>Aesthetic Score</FormLabel><FormControl><Input type="number" step="0.1" {...field} readOnly /></FormControl><FormDescription>Score from evaluation step (0-10).</FormDescription><FormMessage /></FormItem>)} />
               </div>
               <Button onClick={form.handleSubmit(handleEstimate)} type="button" disabled={loading.estimate}>
                   {loading.estimate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Building className="mr-2 h-4 w-4" />}
@@ -396,3 +450,5 @@ export function ValuationTool() {
     </Form>
   );
 }
+
+    
