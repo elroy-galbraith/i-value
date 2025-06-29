@@ -124,7 +124,8 @@ export function ValuationTool() {
 
     const formData = new FormData();
     selectedFiles.forEach(file => formData.append("images", file));
-    formData.append("data", JSON.stringify({ user_id: "user-123", eval_id: `eval-${Date.now()}` }));
+    formData.append("user_id", "user-123");
+    formData.append("eval_id", `eval-${Date.now()}`);
 
     try {
       const response = await fetch("https://ml-endpoints.aeontsolutions.com/v1/room-evaluator/", {
@@ -270,7 +271,7 @@ export function ValuationTool() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Property Images</Label>
+                  <Label htmlFor="image-upload">Property Images</Label>
                   <div className="relative">
                     <Input id="image-upload" type="file" multiple onChange={handleFileChange} className="w-full h-full absolute inset-0 opacity-0 cursor-pointer" />
                     <label htmlFor="image-upload" className="flex items-center justify-center w-full h-32 border-2 border-dashed border-muted rounded-lg cursor-pointer hover:bg-muted/50">
