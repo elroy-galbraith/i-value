@@ -141,10 +141,6 @@ export function ValuationTool() {
   };
   
   const handleEstimate: SubmitHandler<ValuationFormValues> = async (data) => {
-    if (!lat || !lng) {
-        toast({ variant: "destructive", title: "Location Missing", description: "Latitude and longitude are required." });
-        return;
-    }
     setLoading(prev => ({ ...prev, estimate: true }));
     setEstimationResult(null);
 
@@ -152,8 +148,8 @@ export function ValuationTool() {
       sqft: data.sqft,
       rooms: data.bedrooms,
       bathroom: data.bathrooms,
-      latitude: lat,
-      longitude: lng,
+      latitude: lat ?? 0,
+      longitude: lng ?? 0,
       aes_score: data.aes_score,
       property_type: data.propertyType,
     };
@@ -179,8 +175,8 @@ export function ValuationTool() {
 
   const handleFindSimilar = async () => {
     const data = form.getValues();
-    if (!estimationResult || !lat || !lng) {
-      toast({ variant: "destructive", title: "Missing Data", description: "Please complete previous steps first." });
+    if (!estimationResult) {
+      toast({ variant: "destructive", title: "Missing Data", description: "Please complete the estimation step first." });
       return;
     }
     setLoading(prev => ({ ...prev, find: true }));
@@ -190,8 +186,8 @@ export function ValuationTool() {
         sqft: data.sqft,
         rooms: data.bedrooms,
         bathroom: data.bathrooms,
-        latitude: lat,
-        longitude: lng,
+        latitude: lat ?? 0,
+        longitude: lng ?? 0,
         aes_score: data.aes_score,
         property_type: data.propertyType,
         parish: data.parish,
