@@ -131,7 +131,6 @@ export function ValuationTool() {
       setEvaluationResult(result);
       form.setValue("aes_score", parseFloat(result.average_score.toFixed(2)));
       toast({ title: "Evaluation Complete", description: `Average aesthetic score: ${result.average_score.toFixed(2)}` });
-      setActiveTab("estimate");
     } catch (error) {
       console.error("Room evaluation error:", error);
       toast({ variant: "destructive", title: "Evaluation Failed", description: "Could not evaluate the room images." });
@@ -397,5 +396,3 @@ export function ValuationTool() {
     </Form>
   );
 }
-
-    
