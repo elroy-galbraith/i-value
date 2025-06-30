@@ -138,8 +138,12 @@ export function ValuationTool() {
       setEvaluationResult(result);
       const newImages = result.public_urls.map((url: string, index: number) => ({
         url: url,
-        description: Array.isArray(result.descriptions) ? result.descriptions[index] : result.descriptions,
-        score: result.average_score,
+        description: (Array.isArray(result.descriptions) && result.descriptions[index]) 
+          ? result.descriptions[index] 
+          : "Description not available.",
+        score: (Array.isArray(result.scores) && result.scores[index] !== undefined) 
+          ? result.scores[index] 
+          : result.average_score,
       }));
       setEvaluatedImages(newImages);
 
