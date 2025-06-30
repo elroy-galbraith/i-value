@@ -26,7 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/icons";
-import { BrainCircuit, LayoutDashboard, Settings, LogOut, Map, Wrench } from "lucide-react";
+import { LayoutDashboard, Settings, LogOut, Wrench } from "lucide-react";
 
 function UserNav() {
   return (
@@ -72,16 +72,6 @@ function Nav() {
       label: "Dashboard",
       href: "/",
       icon: <LayoutDashboard />,
-    },
-    {
-      label: "Comparables Tool",
-      href: "/comparables",
-      icon: <BrainCircuit />,
-    },
-    {
-      label: "Map View",
-      href: "/map",
-      icon: <Map />,
     },
     {
         label: "Valuation Tool",

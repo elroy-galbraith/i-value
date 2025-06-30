@@ -9,7 +9,7 @@ export default function ValuationToolPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Valuation Tool</h2>
           <p className="text-muted-foreground">
-            Follow the steps to generate a property valuation report.
+            Select a property on the map, then follow the steps to generate a valuation report.
           </p>
         </div>
       </div>
