@@ -35,6 +35,8 @@ import { parishes } from "@/lib/data";
 import { evaluateRoom } from "@/ai/flows/evaluate-room-flow";
 import { generateReport } from "@/ai/flows/generate-report-flow";
 import { MapView } from "@/components/map-view";
+import { estimatePropertyValue, findSimilarProperties } from "@/services/property-api";
+
 
 const valuationSchema = z.object({
   address: z.string().optional(),
@@ -209,13 +211,7 @@ export function ValuationTool() {
     };
 
     try {
-      const response = await fetch("https://ml-endpoints.aeontsolutions.com/v1/property-relative-value/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const result = await response.json();
+      const result = await estimatePropertyValue(payload);
       setEstimationResult(result);
       toast({ title: "Estimation Complete", description: `Median estimated price: ${result.median_price}` });
     } catch (error) {
@@ -258,13 +254,7 @@ export function ValuationTool() {
     };
 
     try {
-        const response = await fetch("https://ml-endpoints.aeontsolutions.com/v1/similar-properties/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const result = await response.json();
+        const result = await findSimilarProperties(payload);
         setSimilarProperties(result);
         setActiveTab("report");
     } catch (error) {
@@ -305,7 +295,7 @@ export function ValuationTool() {
         similarProperties: similarProperties,
       };
       
-      const response = await generateReport(reportInput);
+      const response = await generateReport(reportInput as any);
       setReport(response.report);
       toast({ title: "Report Generated Successfully" });
 
