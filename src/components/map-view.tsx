@@ -5,12 +5,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { MapMouseEvent } from '@vis.gl/react-google-maps';
+import { PlaceAutocomplete } from './place-autocomplete';
 
 export function MapView() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const initialPosition = { lat: 18.1096, lng: -77.2975 }; // Jamaica
   const router = useRouter();
   const [selectedPosition, setSelectedPosition] = useState<google.maps.LatLngLiteral | null>(null);
+
+  const [center, setCenter] = useState(initialPosition);
+  const [zoom, setZoom] = useState(9);
 
   const handleMapClick = async (event: MapMouseEvent) => {
     if (!event.detail.latLng) return;
@@ -29,6 +33,18 @@ export function MapView() {
     });
   };
 
+  const handlePlaceSelect = (place: google.maps.places.PlaceResult) => {
+    if (place.geometry && place.geometry.location) {
+      const newCenter = {
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng(),
+      };
+      setCenter(newCenter);
+      setZoom(15);
+    }
+  };
+
+
   if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
     return (
       <Card>
@@ -45,11 +61,14 @@ export function MapView() {
   return (
     <Card>
       <CardContent className="p-2">
-        <div className="h-[60vh] w-full rounded-lg overflow-hidden">
-          <APIProvider apiKey={apiKey}>
+        <APIProvider apiKey={apiKey} libraries={['places']}>
+          <div className='mb-4'>
+            <PlaceAutocomplete onPlaceSelect={handlePlaceSelect} />
+          </div>
+          <div className="h-[60vh] w-full rounded-lg overflow-hidden">
             <Map
-              defaultCenter={initialPosition}
-              defaultZoom={9}
+              center={center}
+              zoom={zoom}
               gestureHandling={'greedy'}
               disableDefaultUI={true}
               mapId="ivalu_map"
@@ -57,10 +76,10 @@ export function MapView() {
             >
               {selectedPosition && <AdvancedMarker position={selectedPosition} />}
             </Map>
-          </APIProvider>
-        </div>
+          </div>
+        </APIProvider>
         <div className="text-center text-muted-foreground pt-2">
-          Click on the map to select a property location.
+          Search for a location, then click the map to select a property.
         </div>
       </CardContent>
     </Card>

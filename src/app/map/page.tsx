@@ -9,7 +9,7 @@ export default function MapPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Interactive Map</h2>
           <p className="text-muted-foreground">
-            View and interact with a map of Jamaica.
+            Search for a location, then click the map to select a property.
           </p>
         </div>
       </div>
