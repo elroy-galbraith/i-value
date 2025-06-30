@@ -15,10 +15,10 @@ export default function LandingPage() {
           <span className="text-xl font-bold">i-Valu Lite</span>
         </div>
         <nav className="flex items-center gap-4">
-          <Link href="/dashboard" legacyBehavior passHref>
+          <Link href="/dashboard">
             <Button variant="ghost">Sign In</Button>
           </Link>
-          <Link href="/dashboard" legacyBehavior passHref>
+          <Link href="/dashboard">
             <Button>Get Started</Button>
           </Link>
         </nav>
@@ -34,7 +34,7 @@ export default function LandingPage() {
             Leverage AI to evaluate properties, analyze market data, and generate IVS-compliant reports in minutes, not days.
           </p>
           <div className="flex justify-center gap-4">
-            <Link href="/dashboard" legacyBehavior passHref>
+            <Link href="/dashboard">
               <Button size="lg">
                 Start Your First Valuation <ArrowRight className="ml-2" />
               </Button>
@@ -152,7 +152,7 @@ export default function LandingPage() {
                 <p className="text-muted-foreground max-w-xl mx-auto mb-8">
                     Join the future of property valuation. Get started for free and experience the power of AI.
                 </p>
-                <Link href="/dashboard" legacyBehavior passHref>
+                <Link href="/dashboard">
                     <Button size="lg">
                     Get Started Now <ArrowRight className="ml-2" />
                     </Button>
