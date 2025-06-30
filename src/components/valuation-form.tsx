@@ -256,12 +256,23 @@ export function ValuationTool() {
     try {
         const result = await findSimilarProperties(payload);
         setSimilarProperties(result);
-        setActiveTab("report");
+        const numProps = result?.similar_properties?.length || 0;
+        toast({ title: "Search Complete", description: `Found ${numProps} comparable properties.` });
+
     } catch (error) {
         console.error("Find similar properties error:", error);
-        toast({ variant: "destructive", title: "Failed to Find Comparables", description: "Could not find similar properties." });
+        toast({
+            variant: "default",
+            title: "No Comparables Found",
+            description: "No similar properties were found. You can still proceed to generate the report.",
+        });
+        setSimilarProperties({
+            similar_properties: [],
+            google_search_results: [],
+        });
     } finally {
         setLoading(prev => ({ ...prev, find: false }));
+        setActiveTab("report");
     }
   };
 
