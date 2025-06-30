@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Upload, Sparkles, Building, Search, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parishes } from "@/lib/data";
+import { evaluateRoom } from "@/ai/flows/evaluate-room-flow";
 
 const valuationSchema = z.object({
   address: z.string().optional(),
@@ -64,7 +65,6 @@ export function ValuationTool() {
   const [activeTab, setActiveTab] = useState("evaluate");
   const [loading, setLoading] = useState({ evaluate: false, estimate: false, find: false });
   
-  const [evaluationResult, setEvaluationResult] = useState<any>(null);
   const [evaluatedImages, setEvaluatedImages] = useState<EvaluatedImage[]>([]);
   const [estimationResult, setEstimationResult] = useState<any>(null);
   const [similarProperties, setSimilarProperties] = useState<any>(null);
@@ -112,46 +112,53 @@ export function ValuationTool() {
     }
   };
 
+  const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleEvaluate: MouseEventHandler<HTMLButtonElement> = async (e) => {
     e.preventDefault();
+    const trigger = form.trigger(undefined, { shouldFocus: true });
+    if (!trigger) return;
+
     if (selectedFiles.length === 0) {
       toast({ variant: "destructive", title: "No images selected", description: "Please upload at least one image to evaluate." });
       return;
     }
     setLoading(prev => ({ ...prev, evaluate: true }));
-    setEvaluationResult(null);
     setEvaluatedImages([]);
 
-    const formData = new FormData();
-    selectedFiles.forEach(file => formData.append("images", file));
-    formData.append("user_id", "user-123");
-    formData.append("eval_id", `eval-${Date.now()}`);
-
     try {
-      const response = await fetch("https://ml-endpoints.aeontsolutions.com/v1/room-evaluator/", {
-        method: "POST",
-        body: formData,
+      const evaluationPromises = selectedFiles.map(async (file, index) => {
+        const dataUri = await fileToDataUri(file);
+        const result = await evaluateRoom({ photoDataUri: dataUri });
+        
+        return {
+          url: imagePreviews[index], // Use the preview URL we already have
+          description: result.Description,
+          score: result.Score,
+        };
       });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const result = await response.json();
-      
-      setEvaluationResult(result);
-      const newImages = result.public_urls.map((url: string, index: number) => ({
-        url: url,
-        description: (Array.isArray(result.descriptions) && result.descriptions[index]) 
-          ? result.descriptions[index] 
-          : "Description not available.",
-        score: (Array.isArray(result.scores) && result.scores[index] !== undefined) 
-          ? result.scores[index] 
-          : result.average_score,
-      }));
-      setEvaluatedImages(newImages);
 
-      form.setValue("aes_score", parseFloat(result.average_score.toFixed(2)));
-      toast({ title: "Evaluation Complete", description: `Average aesthetic score: ${result.average_score.toFixed(2)}` });
+      const results = await Promise.all(evaluationPromises);
+      setEvaluatedImages(results);
+
+      if (results.length > 0) {
+        const totalScore = results.reduce((acc, img) => acc + img.score, 0);
+        const averageScore = totalScore / results.length;
+        form.setValue("aes_score", parseFloat(averageScore.toFixed(2)));
+        toast({ title: "Evaluation Complete", description: `Average aesthetic score: ${averageScore.toFixed(2)}` });
+      } else {
+        toast({ variant: "destructive", title: "Evaluation Failed", description: "No images were successfully evaluated." });
+      }
     } catch (error) {
-      console.error("Room evaluation error:", error);
-      toast({ variant: "destructive", title: "Evaluation Failed", description: "Could not evaluate the room images." });
+      console.error("Room evaluation error with Genkit:", error);
+      toast({ variant: "destructive", title: "Evaluation Failed", description: "An AI error occurred during image evaluation." });
     } finally {
       setLoading(prev => ({ ...prev, evaluate: false }));
     }
@@ -263,7 +270,7 @@ export function ValuationTool() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="evaluate">1. Evaluate Room</TabsTrigger>
-            <TabsTrigger value="estimate" disabled={!evaluationResult}>2. Estimate Value</TabsTrigger>
+            <TabsTrigger value="estimate" disabled={evaluatedImages.length === 0}>2. Estimate Value</TabsTrigger>
             <TabsTrigger value="similar" disabled={!estimationResult}>3. Find Comps</TabsTrigger>
           </TabsList>
           
@@ -316,7 +323,7 @@ export function ValuationTool() {
                 </CardContent>
               )}
 
-              {evaluationResult && !loading.evaluate && (
+              {evaluatedImages.length > 0 && !loading.evaluate && (
                 <CardContent>
                   <CardTitle className="text-xl mb-4">Evaluation Results</CardTitle>
                   <div className="space-y-4">
