@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI-powered valuation report generator following IVS standards.
@@ -51,7 +52,7 @@ const SimilarPropertiesSchema = z.object({
 });
 
 
-export const GenerateReportInputSchema = z.object({
+const GenerateReportInputSchema = z.object({
   propertyDetails: PropertyDetailsSchema,
   evaluatedImages: z.array(EvaluatedImageSchema),
   aestheticScore: z.number(),
@@ -60,7 +61,7 @@ export const GenerateReportInputSchema = z.object({
 });
 export type GenerateReportInput = z.infer<typeof GenerateReportInputSchema>;
 
-export const GenerateReportOutputSchema = z.object({
+const GenerateReportOutputSchema = z.object({
   report: z.string().describe('The generated valuation report in Markdown format.'),
 });
 export type GenerateReportOutput = z.infer<typeof GenerateReportOutputSchema>;
