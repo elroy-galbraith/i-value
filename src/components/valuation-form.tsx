@@ -29,10 +29,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Upload, Sparkles, Building, Search, ArrowRight } from "lucide-react";
+import { Loader2, Upload, Sparkles, Building, Search, ArrowRight, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parishes } from "@/lib/data";
 import { evaluateRoom } from "@/ai/flows/evaluate-room-flow";
+import { generateReport } from "@/ai/flows/generate-report-flow";
 
 const valuationSchema = z.object({
   address: z.string().optional(),
@@ -69,11 +70,17 @@ export function ValuationTool() {
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState("evaluate");
-  const [loading, setLoading] = useState({ evaluate: false, estimate: false, find: false });
+  const [loading, setLoading] = useState({ 
+    evaluate: false, 
+    estimate: false, 
+    find: false,
+    report: false 
+  });
   
   const [evaluatedImages, setEvaluatedImages] = useState<EvaluatedImage[]>([]);
   const [estimationResult, setEstimationResult] = useState<EstimationResult | null>(null);
   const [similarProperties, setSimilarProperties] = useState<any>(null);
+  const [report, setReport] = useState<string | null>(null);
 
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
@@ -269,14 +276,61 @@ export function ValuationTool() {
     }
   };
 
+  const handleGenerateReport = async () => {
+    if (!estimationResult || !similarProperties) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please complete all previous steps before generating a report.",
+      });
+      return;
+    }
+
+    setLoading((prev) => ({ ...prev, report: true }));
+    setReport(null);
+
+    try {
+      const data = form.getValues();
+      const reportInput = {
+        propertyDetails: {
+          address: data.address,
+          propertyType: data.propertyType,
+          sqft: data.sqft,
+          bedrooms: data.bedrooms,
+          bathrooms: data.bathrooms,
+          parish: data.parish,
+        },
+        evaluatedImages: evaluatedImages,
+        aestheticScore: data.aes_score,
+        estimationResult: estimationResult,
+        similarProperties: similarProperties,
+      };
+      
+      const response = await generateReport(reportInput);
+      setReport(response.report);
+      toast({ title: "Report Generated Successfully" });
+
+    } catch (error) {
+      console.error("Report generation error:", error);
+      toast({
+        variant: "destructive",
+        title: "Report Generation Failed",
+        description: "An AI error occurred while generating the report.",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, report: false }));
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={(e) => e.preventDefault()}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="evaluate">1. Evaluate Room</TabsTrigger>
             <TabsTrigger value="estimate" disabled={evaluatedImages.length === 0}>2. Estimate Value</TabsTrigger>
             <TabsTrigger value="similar" disabled={!estimationResult}>3. Find Comps</TabsTrigger>
+            <TabsTrigger value="report" disabled={!similarProperties}>4. Generate Report</TabsTrigger>
           </TabsList>
           
           <TabsContent value="evaluate">
@@ -482,6 +536,44 @@ export function ValuationTool() {
                   </CardContent>
               )}
           </Card>
+          </TabsContent>
+          <TabsContent value="report">
+            <Card>
+              <CardHeader>
+                <CardTitle>Generate Valuation Report</CardTitle>
+                <CardDescription>
+                  Generate a comprehensive IVS-compliant valuation report based on all collected data.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={handleGenerateReport} type="button" disabled={loading.report}>
+                  {loading.report ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="mr-2 h-4 w-4" />
+                  )}
+                  Generate Report
+                </Button>
+              </CardContent>
+
+              {loading.report && (
+                <CardContent className="flex items-center justify-center py-10">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="ml-4 text-muted-foreground">Generating your report...</p>
+                </CardContent>
+              )}
+
+              {report && (
+                <CardContent>
+                  <CardTitle className="text-xl mb-4 border-b pb-2">Valuation Report</CardTitle>
+                    <div className="bg-secondary/30 p-4 rounded-md border">
+                        <pre className="whitespace-pre-wrap font-body text-sm text-foreground">
+                            {report}
+                        </pre>
+                    </div>
+                </CardContent>
+              )}
+            </Card>
           </TabsContent>
         </Tabs>
       </form>
