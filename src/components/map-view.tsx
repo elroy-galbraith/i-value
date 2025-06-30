@@ -4,7 +4,7 @@ import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import type { MapMouseEvent } from '@vis.gl/react-google-maps';
+import type { MapMouseEvent, MapCameraChangedEvent } from '@vis.gl/react-google-maps';
 import { PlaceAutocomplete } from './place-autocomplete';
 
 export function MapView() {
@@ -44,6 +44,11 @@ export function MapView() {
     }
   };
 
+  const handleCameraChange = (ev: MapCameraChangedEvent) => {
+    setZoom(ev.detail.zoom);
+    setCenter(ev.detail.center);
+  };
+
 
   if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
     return (
@@ -73,6 +78,7 @@ export function MapView() {
               disableDefaultUI={true}
               mapId="ivalu_map"
               onClick={handleMapClick}
+              onCameraChanged={handleCameraChange}
             >
               {selectedPosition && <AdvancedMarker position={selectedPosition} />}
             </Map>
