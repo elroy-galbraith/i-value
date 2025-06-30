@@ -295,9 +295,9 @@ export function ValuationTool() {
         propertyDetails: {
           address: data.address,
           propertyType: data.propertyType,
-          sqft: data.sqft,
-          bedrooms: data.bedrooms,
-          bathrooms: data.bathrooms,
+          sqft: Number(data.sqft),
+          bedrooms: Number(data.bedrooms),
+          bathrooms: Number(data.bathrooms),
           parish: data.parish,
         },
         evaluatedImages: evaluatedImages,
