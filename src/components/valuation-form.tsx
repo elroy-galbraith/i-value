@@ -53,6 +53,12 @@ interface EvaluatedImage {
   score: number;
 }
 
+interface EstimationResult {
+  min_price: string;
+  median_price: string;
+  max_price: string;
+}
+
 // Helper to parse price strings like "$1,500,000" into numbers
 const parsePrice = (priceStr: string) => {
   return parseFloat(priceStr.replace(/[^0-9.-]+/g, ""));
@@ -66,7 +72,7 @@ export function ValuationTool() {
   const [loading, setLoading] = useState({ evaluate: false, estimate: false, find: false });
   
   const [evaluatedImages, setEvaluatedImages] = useState<EvaluatedImage[]>([]);
-  const [estimationResult, setEstimationResult] = useState<any>(null);
+  const [estimationResult, setEstimationResult] = useState<EstimationResult | null>(null);
   const [similarProperties, setSimilarProperties] = useState<any>(null);
 
   const [lat, setLat] = useState<number | null>(null);
@@ -390,14 +396,35 @@ export function ValuationTool() {
               </Button>
               </CardContent>
               {estimationResult && (
-              <CardContent>
+                <CardContent>
                   <CardTitle className="text-xl mb-4">Price Estimation</CardTitle>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                  <div><p className="text-sm text-muted-foreground">Minimum</p><p className="text-2xl font-bold">{estimationResult.min_price}</p></div>
-                  <div><p className="text-sm text-primary">Median</p><p className="text-3xl font-bold text-primary">{estimationResult.median_price}</p></div>
-                  <div><p className="text-sm text-muted-foreground">Maximum</p><p className="text-2xl font-bold">{estimationResult.max_price}</p></div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <Label className="text-sm text-muted-foreground">Minimum</Label>
+                      <Input
+                        value={estimationResult.min_price}
+                        onChange={(e) => setEstimationResult(prev => prev ? { ...prev, min_price: e.target.value } : null)}
+                        className="mt-1 text-2xl font-bold text-center bg-transparent border-none shadow-none focus-visible:ring-1 focus-visible:ring-ring"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <Label className="text-sm text-primary">Median</Label>
+                      <Input
+                        value={estimationResult.median_price}
+                        onChange={(e) => setEstimationResult(prev => prev ? { ...prev, median_price: e.target.value } : null)}
+                        className="mt-1 text-3xl font-bold text-primary text-center bg-transparent border-none shadow-none focus-visible:ring-1 focus-visible:ring-ring"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <Label className="text-sm text-muted-foreground">Maximum</Label>
+                      <Input
+                        value={estimationResult.max_price}
+                        onChange={(e) => setEstimationResult(prev => prev ? { ...prev, max_price: e.target.value } : null)}
+                        className="mt-1 text-2xl font-bold text-center bg-transparent border-none shadow-none focus-visible:ring-1 focus-visible:ring-ring"
+                      />
+                    </div>
                   </div>
-              </CardContent>
+                </CardContent>
               )}
           </Card>
           </TabsContent>
