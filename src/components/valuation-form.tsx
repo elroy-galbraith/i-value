@@ -213,7 +213,6 @@ export function ValuationTool() {
       const result = await response.json();
       setEstimationResult(result);
       toast({ title: "Estimation Complete", description: `Median estimated price: ${result.median_price}` });
-      setActiveTab("similar");
     } catch (error) {
       console.error("Value estimation error:", error);
       toast({ variant: "destructive", title: "Estimation Failed", description: "Could not estimate property value." });
