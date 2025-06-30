@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import React, { useEffect, useState, MouseEventHandler } from "react";
 import Image from "next/image";
+import jsPDF from "jspdf";
 import {
   Form,
   FormControl,
@@ -29,7 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Upload, Sparkles, Building, Search, ArrowRight, FileText } from "lucide-react";
+import { Loader2, Upload, Sparkles, Building, Search, ArrowRight, FileText, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parishes } from "@/lib/data";
 import { evaluateRoom } from "@/ai/flows/evaluate-room-flow";
@@ -68,6 +69,21 @@ const parsePrice = (priceStr: string) => {
   return parseFloat(priceStr.replace(/[^0-9.-]+/g, ""));
 };
 
+// Helper function to fetch an image and convert it to Base64
+const toDataURL = (url: string) =>
+  fetch(url)
+    .then((response) => response.blob())
+    .then(
+      (blob) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        })
+    );
+
+
 export function ValuationTool() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -77,7 +93,8 @@ export function ValuationTool() {
     evaluate: false, 
     estimate: false, 
     find: false,
-    report: false 
+    report: false,
+    pdf: false,
   });
   
   const [evaluatedImages, setEvaluatedImages] = useState<EvaluatedImage[]>([]);
@@ -319,6 +336,187 @@ export function ValuationTool() {
       });
     } finally {
       setLoading((prev) => ({ ...prev, report: false }));
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!report || !lat || !lng || !estimationResult) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot generate PDF',
+        description:
+          'Please ensure a report has been generated and property details are complete.',
+      });
+      return;
+    }
+    setLoading((prev) => ({ ...prev, pdf: true }));
+
+    try {
+      const doc = new jsPDF();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 15;
+      let currentY = margin;
+
+      const addWrappedText = (
+        text: string,
+        options: {
+          x: number;
+          fontSize: number;
+          fontStyle: 'normal' | 'bold';
+          maxWidth: number;
+          align?: 'left' | 'center' | 'right';
+        }
+      ) => {
+        doc.setFontSize(options.fontSize);
+        doc.setFont('helvetica', options.fontStyle);
+
+        const splitText = doc.splitTextToSize(text, options.maxWidth);
+        const textHeight = doc.getTextDimensions(splitText).h;
+
+        if (currentY + textHeight > pageHeight - margin) {
+          doc.addPage();
+          currentY = margin;
+        }
+
+        doc.text(splitText, options.x, currentY, { align: options.align });
+        currentY += textHeight + 4; // a bit of padding
+      };
+
+      // 1. Title
+      addWrappedText('Valuation Report', {
+        x: pageWidth / 2,
+        fontSize: 18,
+        fontStyle: 'bold',
+        maxWidth: pageWidth - margin * 2,
+        align: 'center',
+      });
+      addWrappedText(form.getValues('address') || 'N/A', {
+        x: pageWidth / 2,
+        fontSize: 12,
+        fontStyle: 'normal',
+        maxWidth: pageWidth - margin * 2,
+        align: 'center',
+      });
+      currentY += 5;
+
+      // 2. Map Image
+      addWrappedText('Property Location', {
+        x: margin,
+        fontSize: 14,
+        fontStyle: 'bold',
+        maxWidth: pageWidth - margin * 2,
+        align: 'left',
+      });
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=16&size=600x400&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${apiKey}`;
+
+      try {
+        const mapDataUrl = await toDataURL(mapUrl);
+        const mapWidth = pageWidth - margin * 2;
+        const mapHeight = (mapWidth / 600) * 400; // Maintain aspect ratio
+        if (currentY + mapHeight > pageHeight - margin) {
+          doc.addPage();
+          currentY = margin;
+        }
+        doc.addImage(mapDataUrl, 'JPEG', margin, currentY, mapWidth, mapHeight);
+        currentY += mapHeight + 10;
+      } catch (error) {
+        console.error('Failed to load map image for PDF', error);
+        addWrappedText('Map image could not be loaded.', {
+          x: margin,
+          fontSize: 11,
+          fontStyle: 'normal',
+          maxWidth: pageWidth - margin * 2,
+          align: 'left',
+        });
+      }
+
+      // 3. Property Images & Descriptions
+      doc.addPage();
+      currentY = margin;
+      addWrappedText('Property Images & Evaluation', {
+        x: margin,
+        fontSize: 14,
+        fontStyle: 'bold',
+        maxWidth: pageWidth - margin * 2,
+        align: 'left',
+      });
+
+      for (const image of evaluatedImages) {
+        try {
+          const imgDataUrl = await toDataURL(image.url);
+          const imgWidth = pageWidth - margin * 2;
+          const imgProps = doc.getImageProperties(imgDataUrl);
+          const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+
+          if (currentY + imgHeight + 20 > pageHeight - margin) { // +20 for text buffer
+            doc.addPage();
+            currentY = margin;
+          }
+
+          doc.addImage(imgDataUrl, 'JPEG', margin, currentY, imgWidth, imgHeight);
+          currentY += imgHeight + 5;
+
+          const descriptionText = `Aesthetic Score: ${image.score}/10\n\n${image.description}`;
+          addWrappedText(descriptionText, {
+            x: margin,
+            fontSize: 11,
+            fontStyle: 'normal',
+            maxWidth: pageWidth - margin * 2,
+            align: 'left',
+          });
+          currentY += 5; // Extra padding between images
+        } catch (error) {
+          console.error('Failed to load property image for PDF', error);
+          addWrappedText(
+            `Image could not be loaded. Description: ${image.description}`,
+            {
+              x: margin,
+              fontSize: 11,
+              fontStyle: 'normal',
+              maxWidth: pageWidth - margin * 2,
+              align: 'left',
+            }
+          );
+        }
+      }
+
+      // 4. IVS Report Text
+      doc.addPage();
+      currentY = margin;
+      addWrappedText('IVS Compliant Report', {
+        x: margin,
+        fontSize: 14,
+        fontStyle: 'bold',
+        maxWidth: pageWidth - margin * 2,
+        align: 'left',
+      });
+      
+      const splitReport = doc.splitTextToSize(report, pageWidth - margin * 2);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
+      for (const line of splitReport) {
+        if (currentY + lineHeight > pageHeight - margin) {
+          doc.addPage();
+          currentY = margin;
+        }
+        doc.text(line, margin, currentY);
+        currentY += lineHeight;
+      }
+      
+      doc.save(`Valuation-Report-${form.getValues('address')?.replace(/ /g, '_') || 'property'}.pdf`);
+
+    } catch (error) {
+      console.error("PDF Generation Error: ", error);
+      toast({
+        variant: 'destructive',
+        title: 'PDF Generation Failed',
+        description: 'An unexpected error occurred while creating the PDF.',
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, pdf: false }));
     }
   };
 
@@ -567,12 +765,18 @@ export function ValuationTool() {
 
                 {report && (
                   <CardContent>
-                    <CardTitle className="text-xl mb-4 border-b pb-2">Valuation Report</CardTitle>
-                      <div className="bg-secondary/30 p-4 rounded-md border">
-                          <pre className="whitespace-pre-wrap font-body text-sm text-foreground">
-                              {report}
-                          </pre>
-                      </div>
+                    <div className="flex justify-between items-center mb-4 border-b pb-2">
+                      <CardTitle className="text-xl">Valuation Report</CardTitle>
+                      <Button onClick={handleDownloadPdf} type="button" disabled={loading.pdf}>
+                          {loading.pdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                          Download PDF
+                      </Button>
+                    </div>
+                    <div className="bg-secondary/30 p-4 rounded-md border">
+                        <pre className="whitespace-pre-wrap font-body text-sm text-foreground">
+                            {report}
+                        </pre>
+                    </div>
                   </CardContent>
                 )}
               </Card>
