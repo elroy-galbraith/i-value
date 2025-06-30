@@ -138,7 +138,7 @@ export function ValuationTool() {
       setEvaluationResult(result);
       const newImages = result.public_urls.map((url: string, index: number) => ({
         url: url,
-        description: result.descriptions[index],
+        description: Array.isArray(result.descriptions) ? result.descriptions[index] : result.descriptions,
         score: result.average_score,
       }));
       setEvaluatedImages(newImages);
