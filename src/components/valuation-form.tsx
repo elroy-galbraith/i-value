@@ -521,17 +521,23 @@ export function ValuationTool() {
   };
 
   return (
-    <div className="space-y-6">
-      <MapView />
-      <Form {...form}>
-        <form onSubmit={(e) => e.preventDefault()}>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="evaluate">1. Evaluate Room</TabsTrigger>
-              <TabsTrigger value="estimate" disabled={evaluatedImages.length === 0}>2. Estimate Value</TabsTrigger>
-              <TabsTrigger value="similar" disabled={!estimationResult}>3. Find Comps</TabsTrigger>
-              <TabsTrigger value="report" disabled={!similarProperties}>4. Generate Report</TabsTrigger>
-            </TabsList>
+    <div className="flex flex-col lg:flex-row gap-6 h-full">
+      {/* Left Column - Map */}
+      <div className="lg:w-1/2 lg:min-h-[800px]">
+        <MapView />
+      </div>
+      
+      {/* Right Column - Form and Tabs */}
+      <div className="lg:w-1/2">
+        <Form {...form}>
+          <form onSubmit={(e) => e.preventDefault()}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="evaluate">1. Evaluate Room</TabsTrigger>
+                <TabsTrigger value="estimate" disabled={evaluatedImages.length === 0}>2. Estimate Value</TabsTrigger>
+                <TabsTrigger value="similar" disabled={!estimationResult}>3. Find Comps</TabsTrigger>
+                <TabsTrigger value="report" disabled={!similarProperties}>4. Generate Report</TabsTrigger>
+              </TabsList>
             
             <TabsContent value="evaluate">
               <Card>
@@ -781,9 +787,10 @@ export function ValuationTool() {
                 )}
               </Card>
             </TabsContent>
-          </Tabs>
-        </form>
-      </Form>
+            </Tabs>
+          </form>
+        </Form>
+      </div>
     </div>
   );
 }
